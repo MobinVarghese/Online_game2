@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frogger: Cross the Road</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #e0f7fa, #b2ebf2);
+            color: #006064;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            width: 600px;
+            text-align: center;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #00796B;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 15px;
+            border-radius: 5px;
+            min-width: 120px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        #game-board {
+            width: 600px;
+            height: 600px;
+            background: #78909C;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .road-line {
+            position: absolute;
+            height: 4px;
+            background: #FFFFFF;
+            width: 100%;
+            opacity: 0.7;
+        }
+        
+        .safe-area {
+            position: absolute;
+            width: 100%;
+            height: 60px;
+            background: #80CBC4;
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        #start-area {
+            bottom: 0;
+        }
+        
+        #end-area {
+            top: 0;
+        }
+        
+        #frog {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #4CAF50;
+            border-radius: 50% 50% 0 0;
+            bottom: 10px;
+            left: 280px;
+            z-index: 100;
+            transition: all 0.1s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        #frog::before, #frog::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 12px;
+            background: #336736;
+            border-radius: 50%;
+            top: 8px;
+        }
+        
+        #frog::before {
+            left: 8px;
+        }
+        
+        #frog::after {
+            right: 8px;
+        }
+        
+        .car {
+            position: absolute;
+            height: 40px;
+            border-radius: 5px;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .car-front, .car-back {
+            position: absolute;
+            height: 100%;
+            width: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .car-front {
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .car-back {
+            border-radius: 5px 0 0 5px;
+        }
+        
+        .moving-right .car-front {
+            right: 0;
+        }
+        
+        .moving-left .car-back {
+            left: 0;
+        }
+        
+        .car-window {
+            position: absolute;
+            width: 15px;
+            height: 12px;
+            background: #E1F5FE;
+            top: 5px;
+            border-radius: 2px;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        button {
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            background: #26A69A;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 0 #00796B;
+        }
+        
+        button:hover {
+            background: #00897B;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #00796B;
+        }
+        
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: left;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .instructions h2 {
+            margin-bottom: 10px;
+            color: #00796B;
+        }
+        
+        .instructions ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            position: relative;
+        }
+        
+        .instructions li::before {
+            content: '•';
+            color: #00796B;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+        
+        .game-over, .level-complete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            color: #006064;
+            width: 80%;
+        }
+        
+        .game-over h2, .level-complete h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #F44336;
+        }
+        
+        .level-complete h2 {
+            color: #4CAF50;
+        }
+        
+        .start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 1000;
+            width: 80%;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            color: #006064;
+        }
+        
+        .start-screen h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #00796B;
+        }
+        
+        .difficulty-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .keyboard-hint {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #006064;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>FROGGER</h1>
+        <div class="game-info">
+            <div class="info-box">Level: <span id="level">1</span></div>
+            <div class="info-box">Lives: <span id="lives">3</span></div>
+            <div class="info-box">Score: <span id="score">0</span></div>
+        </div>
+        
+        <div id="game-board">
+            <div class="safe-area" id="start-area"></div>
+            <div class="safe-area" id="end-area"></div>
+            <div id="frog"></div>
+            <!-- Road lines will be generated here -->
+            <!-- Cars will be generated here -->
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">Start Game</button>
+            <button id="reset-btn">Reset Game</button>
+        </div>
+        
+        <div class="instructions">
+            <h2>How to Play</h2>
+            <ul>
+                <li>Use arrow keys to move the frog</li>
+                <li>Cross the road without getting hit by cars</li>
+                <li>Reach the green zone at the top to complete the level</li>
+                <li>You have 3 lives - if you get hit, you lose a life</li>
+                <li>Each level has more and faster cars</li>
+            </ul>
+            <div class="keyboard-hint">Tip: Use keyboard arrow keys for better control</div>
+        </div>
+        
+        <div class="game-over">
+            <h2>GAME OVER</h2>
+            <p>You ran out of lives!</p>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+        
+        <div class="level-complete">
+            <h2>LEVEL COMPLETE!</h2>
+            <p>Get ready for the next level</p>
+            <button id="next-level-btn">Next Level</button>
+        </div>
+        
+        <div class="start-screen" id="start-screen">
+            <h2>FROGGER: CROSS THE ROAD</h2>
+            <p>Guide your frog across the busy road to safety!</p>
+            <div class="difficulty-buttons">
+                <button id="easy-btn">Easy</button>
+                <button id="medium-btn">Medium</button>
+                <button id="hard-btn">Hard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const gameBoard = document.getElementById('game-board');
+            const frog = document.getElementById('frog');
+            const startBtn = document.getElementById('start-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            const nextLevelBtn = document.getElementById('next-level-btn');
+            const gameOverScreen = document.querySelector('.game-over');
+            const levelCompleteScreen = document.querySelector('.level-complete');
+            const startScreen = document.getElementById('start-screen');
+            const easyBtn = document.getElementById('easy-btn');
+            const mediumBtn = document.getElementById('medium-btn');
+            const hardBtn = document.getElementById('hard-btn');
+            const finalScoreDisplay = document.getElementById('final-score');
+            
+            const levelDisplay = document.getElementById('level');
+            const livesDisplay = document.getElementById('lives');
+            const scoreDisplay = document.getElementById('score');
+            
+            let gameActive = false;
+            let level = 1;
+            let lives = 3;
+            let score = 0;
+            let frogPosition = { x: 280, y: 10 };
+            let cars = [];
+            let gameInterval;
+            let carGenerationInterval;
+            let difficulty = 'medium';
+            
+            // Create road lines
+            function createRoadLines() {
+                for (let i = 1; i < 12; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'road-line';
+                    line.style.top = `${60 + i * 45}px`;
+                    gameBoard.appendChild(line);
+                }
+            }
+            
+            // Initialize game
+            function initGame() {
+                level = 1;
+                lives = 3;
+                score = 0;
+                frogPosition = { x: 280, y: 10 };
+                cars = [];
+                
+                updateDisplays();
+                placeFrog();
+                clearIntervals();
+                
+                gameOverScreen.style.display = 'none';
+                levelCompleteScreen.style.display = 'none';
+                startScreen.style.display = 'block';
+                
+                startBtn.textContent = 'Start Game';
+                
+                // Create road lines
+                const existingLines = document.querySelectorAll('.road-line');
+                existingLines.forEach(line => line.remove());
+                createRoadLines();
+            }
+            
+            function startGame() {
+                if (gameActive) return;
+                
+                startScreen.style.display = 'none';
+                gameActive = true;
+                generateCars();
+                
+                // Game loop
+                gameInterval = setInterval(() => {
+                    moveCars();
+                    checkCollisions();
+                }, 30); // Faster game loop for more responsiveness
+                
+                // Generate cars at intervals based on level and difficulty
+                const baseInterval = difficulty === 'easy' ? 800 : difficulty === 'medium' ? 600 : 400;
+                const interval = Math.max(baseInterval - (level * 50), 200); // Much faster car generation
+                carGenerationInterval = setInterval(generateCar, interval);
+                
+                startBtn.textContent = 'Pause Game';
+            }
+            
+            function pauseGame() {
+                gameActive = false;
+                clearIntervals();
+                startBtn.textContent = 'Resume Game';
+            }
+            
+            function resetGame() {
+                gameActive = false;
+                clearIntervals();
+                removeCars();
+                initGame();
+            }
+            
+            function clearIntervals() {
+                clearInterval(gameInterval);
+                clearInterval(carGenerationInterval);
+            }
+            
+            function removeCars() {
+                const carElements = document.querySelectorAll('.car');
+                carElements.forEach(car => car.remove());
+            }
+            
+            function generateCars() {
+                // Create initial set of cars based on level
+                const carCount = 5 + level * 2; // More cars per level
+                for (let i = 0; i < carCount; i++) {
+                    generateCar();
+                }
+            }
+            
+            function generateCar() {
+                if (!gameActive) return;
+                
+                const laneHeight = 40;
+                const laneCount = 12;
+                const lane = Math.floor(Math.random() * laneCount) + 1;
+                const goingRight = Math.random() > 0.5;
+                
+                const car = document.createElement('div');
+                car.className = `car ${goingRight ? 'moving-right' : 'moving-left'}`;
+                
+                // Random car properties
+                const width = 40 + Math.floor(Math.random() * 40);
+                const color = `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`; // Lighter colors
+                
+                car.style.width = `${width}px`;
+                car.style.background = color;
+                car.style.top = `${60 + lane * laneHeight}px`;
+                
+                if (goingRight) {
+                    car.style.left = '-100px';
+                } else {
+                    car.style.right = '-100px';
+                }
+                
+                // Add car details
+                const front = document.createElement('div');
+                front.className = goingRight ? 'car-front' : 'car-back';
+                front.style.background = 'rgba(0, 0, 0, 0.3)';
+                
+                const back = document.createElement('div');
+                back.className = goingRight ? 'car-back' : 'car-front';
+                back.style.background = 'rgba(0, 0, 0, 0.3)';
+                
+                // Add windows to cars
+                const window1 = document.createElement('div');
+                window1.className = 'car-window';
+                window1.style.left = '8px';
+                
+                const window2 = document.createElement('div');
+                window2.className = 'car-window';
+                window2.style.right = '8px';
+                
+                car.appendChild(front);
+                car.appendChild(back);
+                car.appendChild(window1);
+                car.appendChild(window2);
+                
+                gameBoard.appendChild(car);
+                
+                // Store car data with increased speeds
+                const baseSpeed = difficulty === 'easy' ? 3 : difficulty === 'medium' ? 4 : 5;
+                cars.push({
+                    element: car,
+                    speed: (baseSpeed + Math.random() * 3 + level * 0.7) * (goingRight ? 1 : -1), // Faster cars
+                    goingRight: goingRight,
+                    lane: lane
+                });
+            }
+            
+            function moveCars() {
+                for (let i = cars.length - 1; i >= 0; i--) {
+                    const car = cars[i];
+                    const carElement = car.element;
+                    
+                    // Update position based on speed
+                    if (car.goingRight) {
+                        let currentPos = parseInt(carElement.style.left);
+                        currentPos += car.speed;
+                        carElement.style.left = `${currentPos}px`;
+                        
+                        // Remove if off screen
+                        if (currentPos > 700) {
+                            carElement.remove();
+                            cars.splice(i, 1);
+                        }
+                    } else {
+                        let currentPos = parseInt(carElement.style.right);
+                        currentPos -= car.speed; // Subtract because we're moving left
+                        carElement.style.right = `${currentPos}px`;
+                        
+                        // Remove if off screen
+                        if (currentPos > 700) {
+                            carElement.remove();
+                            cars.splice(i, 1);
+                        }
+                    }
+                }
+            }
+            
+            function placeFrog() {
+                frog.style.left = `${frogPosition.x}px`;
+                frog.style.bottom = `${frogPosition.y}px`;
+            }
+            
+            function moveFrog(direction) {
+                if (!gameActive) return;
+                
+                switch(direction) {
+                    case 'up':
+                        frogPosition.y = Math.min(frogPosition.y + 50, 550);
+                        break;
+                    case 'down':
+                        frogPosition.y = Math.max(frogPosition.y - 50, 10);
+                        break;
+                    case 'left':
+                        frogPosition.x = Math.max(frogPosition.x - 50, 10);
+                        break;
+                    case 'right':
+                        frogPosition.x = Math.min(frogPosition.x + 50, 550);
+                        break;
+                }
+                
+                placeFrog();
+                checkCollisions();
+                checkLevelComplete();
+            }
+            
+            function checkCollisions() {
+                const frogRect = frog.getBoundingClientRect();
+                const boardRect = gameBoard.getBoundingClientRect();
+                
+                const adjustedFrogRect = {
+                    left: frogRect.left - boardRect.left,
+                    right: frogRect.right - boardRect.left,
+                    top: frogRect.top - boardRect.top,
+                    bottom: frogRect.bottom - boardRect.top
+                };
+                
+                for (const car of cars) {
+                    const carElement = car.element;
+                    const carRect = carElement.getBoundingClientRect();
+                    
+                    const adjustedCarRect = {
+                        left: carRect.left - boardRect.left,
+                        right: carRect.right - boardRect.left,
+                        top: carRect.top - boardRect.top,
+                        bottom: carRect.bottom - boardRect.top
+                    };
+                    
+                    if (adjustedFrogRect.left < adjustedCarRect.right &&
+                        adjustedFrogRect.right > adjustedCarRect.left &&
+                        adjustedFrogRect.top < adjustedCarRect.bottom &&
+                        adjustedFrogRect.bottom > adjustedCarRect.top) {
+                        // Collision detected
+                        handleCollision();
+                        break;
+                    }
+                }
+            }
+            
+            function handleCollision() {
+                lives--;
+                updateDisplays();
+                
+                if (lives <= 0) {
+                    gameOver();
+                } else {
+                    // Reset frog position after a brief delay
+                    gameActive = false;
+                    setTimeout(() => {
+                        frogPosition = { x: 280, y: 10 };
+                        placeFrog();
+                        gameActive = true;
+                    }, 1000);
+                }
+            }
+            
+            function checkLevelComplete() {
+                if (frogPosition.y >= 550) {
+                    // Frog reached the top
+                    levelComplete();
+                }
+            }
+            
+            function levelComplete() {
+                gameActive = false;
+                clearIntervals();
+                
+                score += level * 100;
+                level++;
+                updateDisplays();
+                
+                levelCompleteScreen.style.display = 'block';
+            }
+            
+            function nextLevel() {
+                levelCompleteScreen.style.display = 'none';
+                frogPosition = { x: 280, y: 10 };
+                placeFrog();
+                removeCars();
+                cars = [];
+                startGame();
+            }
+            
+            function gameOver() {
+                gameActive = false;
+                clearIntervals();
+                finalScoreDisplay.textContent = score;
+                gameOverScreen.style.display = 'block';
+            }
+            
+            function updateDisplays() {
+                levelDisplay.textContent = level;
+                livesDisplay.textContent = lives;
+                scoreDisplay.textContent = score;
+            }
+            
+            // Event listeners
+            document.addEventListener('keydown', function(e) {
+                if (!gameActive) return;
+                
+                switch(e.key) {
+                    case 'ArrowUp':
+                        moveFrog('up');
+                        break;
+                    case 'ArrowDown':
+                        moveFrog('down');
+                        break;
+                    case 'ArrowLeft':
+                        moveFrog('left');
+                        break;
+                    case 'ArrowRight':
+                        moveFrog('right');
+                        break;
+                }
+            });
+            
+            startBtn.addEventListener('click', function() {
+                if (!gameActive) {
+                    startGame();
+                } else {
+                    pauseGame();
+                }
+            });
+            
+            resetBtn.addEventListener('click', resetGame);
+            restartBtn.addEventListener('click', function() {
+                gameOverScreen.style.display = 'none';
+                resetGame();
+            });
+            
+            nextLevelBtn.addEventListener('click', nextLevel);
+            
+            // Difficulty selection
+            easyBtn.addEventListener('click', function() {
+                difficulty = 'easy';
+                startScreen.style.display = 'none';
+                startGame();
+            });
+            
+            mediumBtn.addEventListener('click', function() {
+                difficulty = 'medium';
+                startScreen.style.display = 'none';
+                startGame();
+            });
+            
+            hardBtn.addEventListener('click', function() {
+                difficulty = 'hard';
+                startScreen.style.display = 'none';
+                startGame();
+            });
+            
+            // Initialize the game
+            initGame();
+        });
+    </script>
+</body>
+</html>
